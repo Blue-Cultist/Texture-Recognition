@@ -145,20 +145,26 @@ class Lab6(Scene3D):
             self.updateShape("wireframe")
         
         if symbol == Key.M:
-            Taubin_recursive(self.mesh, 50, 0.1, -0.105)
+            Taubin_recursive(self.mesh, 50, 0.2, -0.105)
             self.updateShape("mesh")
-            ###print("To be implemented")
             
             self.wireframe.points = self.mesh.vertices
             self.updateShape("wireframe")
         
         if symbol == Key.Q:
-            Laplace_recursive(self.mesh, 50, 0.1)
+            Laplace_recursive(self.mesh, 50, 0.2)
             self.updateShape("mesh")
-            ###print("To be implemented")
             
             self.wireframe.points = self.mesh.vertices
             self.updateShape("wireframe")
+            
+        ##if symbol == Key.U:
+        ##    spectral_filter(self.mesh, 10, 0.2)
+        ##    self.updateShape("mesh")
+        ##    ###print("To be implemented")
+        ##    
+        ##    self.wireframe.points = self.mesh.vertices
+        ##    self.updateShape("wireframe")
         
         if symbol == Key.N:
             global MESH_NAME
@@ -212,6 +218,7 @@ class Lab6(Scene3D):
         E: Eigendecomposition\n\
         M: Apply 50 iterations of Taubin smoothing\n\
         Q: Apply 50 iterations of Laplace smoothing\n\
+        U: Apply 10 iterations of spectral filter smoothing (non-functional)\n\
         N: Terminal prompt to change which file is visualised\n\
         ?: Show this list\n\n")
 
@@ -645,49 +652,7 @@ def delta_coordinates_sparse(mesh: Mesh3D) -> np.ndarray:
 ###    
 ###    Taubin_recursive(mesh, iterations-1, l, m)
 ###    
-###    return
-
-def Laplace_recursive(mesh:Mesh3D, iterations, l):
-    functional = 0<l
-    if not functional:
-        print("The parameter l must satisfy the 0<l condition for this algorithm to work.")
-    
-    Dp = -delta_coordinates_sparse(mesh)
-    vertices = mesh.vertices
-    
-    if iterations == 0:
-        return
-        
-    vertices_new = vertices + l*Dp 
-    
-    mesh.vertices = vertices_new
-    
-    Laplace_recursive(mesh, iterations-1, l)
-    
-    return
-
-def Taubin_recursive(mesh:Mesh3D, iterations, l, m):
-    functional = 0<l and m<0
-    if not functional:
-        print("The parameters l and m must satisfy the m<0<l condition for this algorithm to work.")
-    
-    Dp = -delta_coordinates_sparse(mesh)
-    vertices = mesh.vertices
-    
-    if iterations == 0:
-        return
-        
-    vertices_new = vertices + l*Dp
-    mesh.vertices = vertices_new    
-    
-    Dp = -delta_coordinates_sparse(mesh)
-    vertices = mesh.vertices
-    
-    vertices_new = vertices + m*Dp
-    mesh.vertices = vertices_new
-    
-    Taubin_recursive(mesh, iterations-1, l, m)
-    
+###    return    
 
 def graph_laplacian_sparse(mesh: Mesh3D) -> sparse.csr_array:
     """
@@ -728,9 +693,11 @@ def eigendecomposition_full(mesh: Mesh3D) -> tuple[np.ndarray, np.ndarray]:
     """
     # Step 1: Compute the graph Laplacian matrix
     L = graph_laplacian(mesh)
+    ##L = graph_laplacian_sparse(mesh)
     
     # Step 2: Perform the eigendecomposition
     eigenvalues, eigenvectors = scipy.linalg.eigh(L)
+    ##eigenvalues, eigenvectors = scipy.sparse.linalg.eigsh(L, k=len(mesh.vertices))
     
     return eigenvalues, eigenvectors
 
@@ -808,7 +775,57 @@ def reconstruct2(mesh: Mesh3D, percent: float, idx: int) -> Mesh3D:
     
     return mesh
 
+def Laplace_recursive(mesh:Mesh3D, iterations, l):
+    functional = 0<l
+    if not functional:
+        print("The parameter l must satisfy the 0<l condition for this algorithm to work.")
+    
+    Dp = -delta_coordinates_sparse(mesh)
+    vertices = mesh.vertices
+    
+    if iterations == 0:
+        return
+        
+    vertices_new = vertices + l*Dp 
+    
+    mesh.vertices = vertices_new
+    
+    Laplace_recursive(mesh, iterations-1, l)
+    
+    return
 
+def Taubin_recursive(mesh:Mesh3D, iterations, l, m):
+    functional = 0<l and m<0
+    if not functional:
+        print("The parameters l and m must satisfy the m<0<l condition for this algorithm to work.")
+    
+    Dp = -delta_coordinates_sparse(mesh)
+    vertices = mesh.vertices
+    
+    if iterations == 0:
+        return
+        
+    vertices_new = vertices + l*Dp
+    ###vertices_new = vertices_new + m*Dp
+    mesh.vertices = vertices_new    
+    
+    Dp = -delta_coordinates_sparse(mesh)
+    vertices = mesh.vertices
+    
+    vertices_new = vertices + m*Dp
+    mesh.vertices = vertices_new
+    
+    Taubin_recursive(mesh, iterations-1, l, m)
+    
+def spectral_filter(mesh:Mesh3D, iterations, a):
+    functional = a<=1 and a>=0
+    if not functional:
+        print("The parameter a must satisfy the 0<=a<=1 condition for this algorithm to work.")
+    mesh_decomp = eigendecomposition_full(mesh)
+    kernel = np.exp(-mesh_decomp[1] * a)**iterations
+    
+    filtered_eigenvectors = mesh_decomp[1] @ np.diag(kernel) @ mesh_decomp[1].T
+    mesh.vertices = filtered_eigenvectors @ self.vertices
 
 if __name__ == "__main__":
     app = Lab6()
