@@ -13,13 +13,15 @@ import time
 import open3d as o3d
 
 import struct
+import utility as util
 
 
 WIDTH = 1000
 HEIGHT = 800
 MESH_NAME = "1.ply"
+CURRENT_MESH = 1
 
-class Lab6(Scene3D):
+class Texture_Detection(Scene3D):
     def __init__(self):
         super().__init__(WIDTH, HEIGHT, "Final project", output=True, n_sliders=2) # :3
         self.reset_mesh()
@@ -33,7 +35,9 @@ class Lab6(Scene3D):
         # self.mesh = Mesh3D("resources/bun_zipper_res2.ply", color=Color.GRAY)
         # self.mesh = Mesh3D("resources/dragon_low_low.obj", color=Color.GRAY)
 
+        self.mesh.remove_degenerate_triangles()
         self.mesh.remove_duplicated_vertices()
+        self.mesh.remove_degenerate_triangles()
         self.mesh.remove_unreferenced_vertices()
         vertices = self.mesh.vertices
         vertices -= np.mean(vertices, axis=0)
@@ -122,7 +126,7 @@ class Lab6(Scene3D):
             start = time.time()
             d_coords = delta_coordinates_sparse(self.mesh)
             self.print(f"Took {(time.time() - start):.3f} seconds.")
-
+            ###print(np.shape(d_coords))
             self.display_delta_coords(d_coords)
 
         if symbol == Key.E:
@@ -157,6 +161,18 @@ class Lab6(Scene3D):
             
             self.wireframe.points = self.mesh.vertices
             self.updateShape("wireframe")
+        
+        if symbol == Key.G:
+            gauss = util.Gauss_curvature(self.mesh)
+            print("======\nGauss maximum {}, average {} and minimum {}\n".format(np.max(gauss), np.average(gauss), np.min(gauss)))
+            print("======\nGauss elements lesser than avg**2/max condition: {}\n".format(np.count_nonzero(gauss<np.average(gauss)**2/np.max(gauss))))
+            print("======\nGauss elements lesser than avg+max/2 condition: {}\n".format(np.count_nonzero(gauss<(np.max(gauss)-np.average(gauss))/2)))
+            print("======\navg**2/max = {}\n======".format(np.average(gauss)**2/np.max(gauss)))
+            self.display_gauss_curv(gauss)
+
+            
+        if symbol == Key.J:
+            self.reset_colours()
             
         ##if symbol == Key.U:
         ##    spectral_filter(self.mesh, 10, 0.2)
@@ -168,31 +184,22 @@ class Lab6(Scene3D):
         
         if symbol == Key.N:
             global MESH_NAME
+            global CURRENT_MESH
+            
             MESH_NAME = input("Please input the file containing the mesh to visualise (extension included).\n")
+            CURRENT_MESH = MESH_NAME[0]
             self.reset_mesh()
 
-        if symbol == Key.RIGHT:
-
-            # Increment the eigenvector index
-            self.eigenvector_idx += 1 
-
-            # Ensure the index does not exceed the number of eigenvectors
-            self.eigenvector_idx = min(self.eigenvector_idx, self.mesh.vertices.shape[0])
-
-            if self.eigenvectors is not None:
-                self.display_eigenvector(self.eigenvectors[:, self.eigenvector_idx])
+        if symbol == Key.RIGHT:            
+            CURRENT_MESH += 1
+            MESH_NAME = str(CURRENT_MESH) + ".ply"
+            self.reset_mesh()
 
         if symbol == Key.LEFT:
-
-            # Decrement the eigenvector index
-            self.eigenvector_idx -= 1 
-
-            # Ensure the index does not go below zero
-            self.eigenvector_idx = max(self.eigenvector_idx, 0)
-
-            if self.eigenvectors is not None:
-                self.display_eigenvector(self.eigenvectors[:, self.eigenvector_idx])
-    
+            CURRENT_MESH -= 1
+            MESH_NAME = str(CURRENT_MESH) + ".ply"
+            self.reset_mesh()
+            
         if symbol == Key.SLASH:
             self.printHelp()
 
@@ -219,7 +226,10 @@ class Lab6(Scene3D):
         M: Apply 50 iterations of Taubin smoothing\n\
         Q: Apply 50 iterations of Laplace smoothing\n\
         U: Apply 10 iterations of spectral filter smoothing (non-functional)\n\
+        J: Reset mesh colour (non-functional)\n\
+        G: Gaussian curvature\n\
         N: Terminal prompt to change which file is visualised\n\
+        <- ->: Show previous/next mesh\n\
         ?: Show this list\n\n")
 
     def display_delta_coords(self, delta: np.ndarray):
@@ -234,7 +244,18 @@ class Lab6(Scene3D):
         
         colormap = cm.get_cmap("plasma")
         colors = colormap(norm)
+        ###print(colors)
         self.mesh.vertex_colors = colors[:,:3]
+        ###print(np.shape(colors[:,:3]))
+        self.updateShape("mesh")
+    
+    def display_gauss_curv(self, gauss):
+        colourmap = cm.get_cmap("plasma")
+        ###gauss_modified = util.floor_gauss(gauss)
+        ###colours = colourmap(gauss_modified)
+        colours = colourmap(gauss)
+        self.mesh.vertex_colors = colours[:,:3]
+
         self.updateShape("mesh")
 
     def display_eigenvector(self, vec: np.ndarray):
@@ -247,6 +268,11 @@ class Lab6(Scene3D):
         colormap = cm.get_cmap("plasma")
         colors = colormap(vec)
         self.mesh.vertex_colors = colors[:,:3]
+        self.updateShape("mesh")
+    
+    def reset_colours(self):
+        ###self.mesh.vertex_colors = Color.GRAY
+        self.color = Color.GRAY
         self.updateShape("mesh")
 
 
@@ -633,27 +659,7 @@ def delta_coordinates_sparse(mesh: Mesh3D) -> np.ndarray:
     delta_coords = L_rw_sparse @ mesh.vertices
     
     return delta_coords
-
-###def Taubin_recursive(mesh:Mesh3D, iterations, l, m):
-###    functional = 0<l and l<-m
-###    if not functional:
-###        print("The parameters l and m must satisfy the 0<l<-m condition for this algorithm to work.")
-###    
-###    Dp = delta_coordinates_sparse(mesh)
-###    vertices = mesh.vertices
-###    
-###    if iterations == 0:
-###        return
-###        
-###    vertices_new = vertices + l*Dp 
-###    vertices_new = vertices + m*Dp
-###    
-###    mesh.vertices = vertices_new
-###    
-###    Taubin_recursive(mesh, iterations-1, l, m)
-###    
-###    return    
-
+   
 def graph_laplacian_sparse(mesh: Mesh3D) -> sparse.csr_array:
     """
     Compute the sparse graph Laplacian matrix for a 3D mesh.
@@ -816,7 +822,8 @@ def Taubin_recursive(mesh:Mesh3D, iterations, l, m):
     mesh.vertices = vertices_new
     
     Taubin_recursive(mesh, iterations-1, l, m)
-    
+
+#Implement this    
 def spectral_filter(mesh:Mesh3D, iterations, a):
     functional = a<=1 and a>=0
     if not functional:
@@ -828,5 +835,5 @@ def spectral_filter(mesh:Mesh3D, iterations, a):
     mesh.vertices = filtered_eigenvectors @ self.vertices
 
 if __name__ == "__main__":
-    app = Lab6()
+    app = Texture_Detection()
     app.mainLoop()
