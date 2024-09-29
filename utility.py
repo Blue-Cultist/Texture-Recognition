@@ -51,17 +51,19 @@ def triangle_angles(mesh:Mesh3D):
     v3 = triangles[:,2] - triangles[:,0]
     
     # Extract unit vectors
-    v1_hat = v1/(v1**2).sum()**0.5
-    v2_hat = v2/(v2**2).sum()**0.5
-    v3_hat = v3/(v3**2).sum()**0.5
+    ###v1_hat = v1/(v1**2).sum()**0.5
+    ###v2_hat = v2/(v2**2).sum()**0.5
+    ###v3_hat = v3/(v3**2).sum()**0.5
     
     # Initialise angle array.
     angles = np.zeros((len(triangles), 3))
+    
+    # Calculate the product of the vectors' magnitudes
     magv1v2 = np.array([np.linalg.norm(v1[i]) * np.linalg.norm(v2[i]) for i in range(0, len(v1))])
     magv2v3 = np.array([np.linalg.norm(v2[i]) * np.linalg.norm(v3[i]) for i in range(0, len(v2))])
     magv3v1 = np.array([np.linalg.norm(v3[i]) * np.linalg.norm(v1[i]) for i in range(0, len(v3))])
     
-    #Calculate angles with arccos
+    # Calculate angles with arccos
     #####angles[:,0] = np.arccos(np.clip(np.dot(v1_hat, v2_hat), -1.0, 1.0))
     ##angles[:,0] = np.arccos(np.clip(np.einsum('ij,ij->i', v1_hat, v2_hat)/, -1.0, 1.0))
     #####angles[:,1] = np.arccos(np.clip(np.dot(v2_hat, v3_hat), -1.0, 1.0))
@@ -69,11 +71,8 @@ def triangle_angles(mesh:Mesh3D):
     #####angles[:,2] = np.arccos(np.clip(np.dot(v3_hat, v1_hat), -1.0, 1.0))
     ##angles[:,2] = np.arccos(np.clip(np.einsum('ij,ij->i', v3_hat, v1_hat), -1.0, 1.0))
     
-    ###angles[:,0] = np.arccos(np.clip(np.dot(v1_hat, v2_hat), -1.0, 1.0))
     angles[:,0] = np.arccos(np.clip(np.einsum('ij,ij->i', v1, v2)/magv1v2, -1.0, 1.0))
-    ###angles[:,1] = np.arccos(np.clip(np.dot(v2_hat, v3_hat), -1.0, 1.0))
     angles[:,1] = np.arccos(np.clip(np.einsum('ij,ij->i', v2, v3)/magv2v3, -1.0, 1.0))
-    ###angles[:,2] = np.arccos(np.clip(np.dot(v3_hat, v1_hat), -1.0, 1.0))
     angles[:,2] = np.arccos(np.clip(np.einsum('ij,ij->i', v3, v1)/magv3v1, -1.0, 1.0))
     
     return angles
@@ -116,9 +115,9 @@ def Gauss_curvature(mesh:Mesh3D):
     vertices = mesh.vertices
     triangles = mesh.triangles 
     angles = triangle_angles(mesh)
-    print("================================================\nAngles maximum {} and minimum {}\n=====================".format(np.max(angles),np.min(angles)))
+    ###print("======\nAngles maximum {} and minimum {}\n".format(np.max(angles),np.min(angles)))
     areas = triangle_areas(mesh)
-    print("================================================\nAreas maximum {} and minimum {}\n=====================".format(np.max(areas),np.min(areas)))
+    ###print("======\nAreas maximum {} and minimum {}\n".format(np.max(areas),np.min(areas)))
     ###is_in_angle = [[0,2],[0,1],[1,2]]
     
     # Calculate the sum of all angles formed on each vertex and the areas of all triangles it is a component of. A traditional "for" is the only way this was made possible.
@@ -134,12 +133,30 @@ def Gauss_curvature(mesh:Mesh3D):
     
     # Initialise curvature per vertex array. The numberer is divided by the barycentric area of each vertex, as defined by Nira Dyn, Kai Hormann, Sun-Jeong Kim, and David Levin
     # in "Optimizing 3D Triangulations Using Discrete Curvature Analysis"
-    ###gauss_curvature = (np.ones(len(vertices)) * (2*np.pi) - angle_totals) / ((area_totals/3)+10**(-9)) #DIVISION BY ZERO ENCOUNTERED
     gauss_curvature = (np.ones(len(vertices)) * (2*np.pi) - angle_totals) / (area_totals/3)
     
     return np.abs(np.array(gauss_curvature))
     
 
-def normal_angles(normals, smoothed_normals):
+def normal_angles(base_normals, smoothed_mesh:Mesh3D):
+    # Calculate the angles between the vertex normals of the regular and the smoothed mesh
+       
+    # Extract the vertex normals of the smoothed mesh
+    smoothed_normals = smoothed_mesh.vertex_normals 
     
-    return(angles)
+    # More debugging (end me)
+    ###print("Randomly selected values of smoothed_normals and base_normals:")
+    ###print(smoothed_normals[100])
+    ###print(base_normals[100])
+    
+    magNsN = np.array([np.linalg.norm(base_normals[i]) * np.linalg.norm(smoothed_normals[i]) for i in range(0, len(base_normals))])
+    
+    # Debugging (I am about to debug my life with a kitchen knife)
+    ###print("The shapes of smoothed_normals, magNsN and base_normals")
+    ###print(np.shape(smoothed_normals))
+    ###print(np.shape(magNsN))
+    ###print(np.shape(base_normals))
+    
+    angles = np.arccos(np.clip(np.einsum('ij,ij->i', base_normals, smoothed_normals)/magNsN, -1.0, 1.0))
+    
+    return angles
