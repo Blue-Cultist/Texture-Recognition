@@ -3108,6 +3108,15 @@ class Mesh3D(ShapeSet):
         '''Removes unreferenced vertices.'''
         self._shape.remove_unreferenced_vertices()
         self._shape.compute_vertex_normals()
+    
+    def remove_degenerate_triangles(self):
+        '''Removes unreferenced vertices.'''
+        self._shape.remove_degenerate_triangles()
+        self._shape.compute_vertex_normals()
+    
+    def recalculate_vertex_normals(self):
+        '''Had to make this a thing'''
+        self._shape.compute_vertex_normals()
 
     @staticmethod
     def create_bunny(color:ColorType=(0, 0, 0)) -> Mesh3D:
