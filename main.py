@@ -67,7 +67,6 @@ class Texture_Detection(Scene3D):
         EXECUTED_LAPLACE = 0
         EXECUTED_TAUBIN = 0
         BASE_NORMALS = self.mesh.vertex_normals
-        ###print(BASE_NORMALS)
 
         self.vertex_adjacency_lists = find_all_adjacent_vertices(self.mesh)
 
@@ -94,8 +93,6 @@ class Texture_Detection(Scene3D):
         global EXECUTED_LAPLACE
         global EXECUTED_TAUBIN
         global BASE_NORMALS
-        ###global WIDGETS
-        ###print(np.shape(BASE_NORMALS))
 
         if symbol == Key.R:
             self.reset_mesh()
@@ -142,10 +139,9 @@ class Texture_Detection(Scene3D):
             self.display_delta_coords(d_coords)
 
         if symbol == Key.S:
-            start = time.time()
+            ###start = time.time()
             d_coords = delta_coordinates_sparse(self.mesh)
-            self.print(f"Took {(time.time() - start):.3f} seconds.")
-            ###print(np.shape(d_coords))
+            ###self.print(f"Took {(time.time() - start):.3f} seconds.")
             self.display_delta_coords(d_coords)
 
         if symbol == Key.B:
@@ -173,7 +169,6 @@ class Texture_Detection(Scene3D):
             self.updateShape("wireframe")
         
         if symbol == Key.N:
-            ###print(ITERATIONS)
             bar = prog.ProgressBar(maxval=ITERATIONS-1).start()            
             Taubin_recursive(self.mesh, ITERATIONS, 0.2, -0.105, bar, 0)
             EXECUTED_TAUBIN += ITERATIONS
@@ -205,10 +200,7 @@ class Texture_Detection(Scene3D):
         
         if symbol == Key.G:
             gauss = util.Gauss_curvature(self.mesh)
-            print("======\nGauss maximum {}, average {} and minimum {}, after {} instances of Laplace smoothing and {} instances of Taubin smoothing\n".format(np.max(gauss), np.average(gauss), np.min(gauss), EXECUTED_LAPLACE, EXECUTED_TAUBIN))
-            ###print("======\nGauss elements lesser than avg**2/max condition: {}\n".format(np.count_nonzero(gauss<np.average(gauss)**2/np.max(gauss))))
-            ###print("======\nGauss elements lesser than avg+max/2 condition: {}\n".format(np.count_nonzero(gauss<(np.max(gauss)-np.average(gauss))/2)))
-            ###print("======\navg**2/max = {}\n======".format(np.average(gauss)**2/np.max(gauss)))
+            ###print("======\nGauss maximum {}, average {} and minimum {}, after {} instances of Laplace smoothing and {} instances of Taubin smoothing\n".format(np.max(gauss), np.average(gauss), np.min(gauss), EXECUTED_LAPLACE, EXECUTED_TAUBIN))
             self.display_gauss_curv(gauss)
         
         if symbol == Key.K:
@@ -216,56 +208,36 @@ class Texture_Detection(Scene3D):
             ceiling = 0
             
             angles = util.normal_angles(BASE_NORMALS, self.mesh)
-            ###print(np.shape(angles))
-            print("\n======\nNormal angles' maximum {}, average {} and minimum {}, after {} instances of Laplace smoothing and {} instances of Taubin smoothing".format(np.max(angles), np.average(angles), np.min(angles), EXECUTED_LAPLACE, EXECUTED_TAUBIN))
-            
+            ###print("\n======\nNormal angles' maximum {}, average {} and minimum {}, after {} instances of Laplace smoothing and {} instances of Taubin smoothing".format(np.max(angles), np.average(angles), np.min(angles), EXECUTED_LAPLACE, EXECUTED_TAUBIN))
             count, units, unit_indices = testU.magnitude_filter(angles, floor, ceiling)
-            print("Distribution of angles between 10**{} and 10**{}".format(floor, ceiling))
-            print("a<10**{}: {}".format(floor, count[0]))
-            
-            for i in range(1, len(count)-1):
-                print("a>10**{} and a<10**{}: {}".format(floor+i, floor+i+1, count[i]))
-            print("a>10**{}: {}".format(ceiling, count[-1]))
+            ###print("Distribution of angles between 10**{} and 10**{}".format(floor, ceiling))
+            ###print("a<10**{}: {}".format(floor, count[0]))
+            ###
+            ###for i in range(1, len(count)-1):
+            ###    print("a>10**{} and a<10**{}: {}".format(floor+i, floor+i+1, count[i]))
+            ###print("a>10**{}: {}".format(ceiling, count[-1]))
             
             #Define the point to examine. This is the most densely populated index of count.
             pte = np.argmax(count)
             above, below, where_above = testU.pt_of_interest_halfway(pte, floor, ceiling, units[pte])
-            print("Points above: {}\nPoints below: {}".format(len(above), len(below)))
+            ###print("Points above: {}\nPoints below: {}".format(len(above), len(below)))
             
             #points_of_interest = np.copy(where_above)
             points_of_interest = np.copy(unit_indices[pte+1])
-            ###print(np.shape(points_of_interest))
             
             for i in range(pte+2, len(unit_indices)):
-                ###print(i, len(unit_indices[i]))
                 if len(unit_indices[i]>0):
-                    ###print(np.shape(unit_indices[i]))
-                    ###print(type(unit_indices[i]))
                     #np.concatenate((points_of_interest, unit_indices[i]))
                     points_of_interest = np.hstack((points_of_interest, unit_indices[i])).flatten()
-            ###print(len(unit_indices[pte+1]))
-            ###print(len(units[pte+1]))
             if len(points_of_interest)<=2000:
-                ###print(len(points_of_interest))
                 points_of_interest = np.hstack((where_above, points_of_interest)).flatten()
-            ###print(np.shape(points_of_interest))
-            ###print(len(points_of_interest))
-            ###print(np.shape(where_above))
             
-            self.display_point_group(points_of_interest)
+            self.display_point_group(points_of_interest, reset=True)
             
             
         if symbol == Key.J:
             self.reset_colours()
-            
-        ##if symbol == Key.U:
-        ##    spectral_filter(self.mesh, 10, 0.2)
-        ##    self.updateShape("mesh")
-        ##    ###print("To be implemented")
-        ##    
-        ##    self.wireframe.points = self.mesh.vertices
-        ##    self.updateShape("wireframe")
-        
+                    
         if symbol == Key.I:
             global MESH_NAME
             global CURRENT_MESH
@@ -310,20 +282,16 @@ class Texture_Detection(Scene3D):
         R: Reset mesh\n\
         W: Toggle wireframe\n\
         A: Adjacent vertices\n\
-        D: Delta coordinates single\n\
-        CTRL+D: Delta coordinates loop\n\
-        L: Delta coordinates laplacian\n\
         S: Delta coordinates sparse\n\
         M: Apply 50 iterations of Taubin smoothing\n\
         N: Apply 100 * the value of the slider (rounded) iterations of Taubin smoothing\n\
         Q: Apply 50 iterations of Laplace smoothing\n\
         E: Apply 100 * the value of the slider (rounded) iterations of Laplace smoothing\n\
-        J: Reset mesh colour (non-functional)\n\
+        J: Reset mesh colour\n\
         G: Gaussian curvature\n\
-        K: Normal angles\n\
+        K: Texture detection via normal angles\n\
         I: Terminal prompt to change which file is visualised\n\
-        <- ->: Show previous/next mesh\n\
-        ?: Show this list\n\n")
+        <- ->: Show previous/next mesh\n\n\n")
 
     def display_delta_coords(self, delta: np.ndarray):
         norm = np.sqrt((delta * delta).sum(-1))
@@ -337,48 +305,34 @@ class Texture_Detection(Scene3D):
         
         colormap = cm.get_cmap("plasma")
         colors = colormap(norm)
-        ###print(colors)
         self.mesh.vertex_colors = colors[:,:3]
-        ##print(np.shape(colors[:,:3]))
-        ##print(colors[:,:3][0])
         self.updateShape("mesh")
     
     def display_gauss_curv(self, gauss):
-        ###colourmap = cm.get_cmap("plasma")
-        ###gauss_modified = util.floor_gauss(gauss)
-        ###colours = colourmap(gauss_modified)
-        ###colours = colourmap(gauss)
-        gradient = np.linspace(0, 1, num=len(gauss))
-        colours = np.array([[0,i,1-i] for i in gradient])
-        colour_indices = np.argsort(gauss)
-        ###self.mesh.vertex_colors = colours[:,:3]
-        self.mesh.vertex_colors = colours[colour_indices]
+        gauss_norm = (gauss - gauss.min()) / (gauss.max() - gauss.min())
+        color = np.zeros((len(gauss), 3))
+        color[:, 0] = gauss_norm
+        color[:, 1] = 0.0
+        color[:, 2] = 0.0
+        self.mesh.vertex_colors = color
 
         self.updateShape("mesh")
     
-    def display_point_group(self, indices):
-        ###print(self.mesh.vertex_colors[indices])
+    def display_point_group(self, indices, reset=False):
+        if reset:
+            self.reset_mesh()
         colours = self.mesh.vertex_colors
-        colours[indices] = [1,0,0]
+        colours[indices] = [1.0,1.0,0.0]
         self.mesh.vertex_colors = colours
         
         self.updateShape("mesh")
-
-    def display_eigenvector(self, vec: np.ndarray):
-        # linear interpolation
-        vec = (vec - vec.min()) / (vec.max() - vec.min()) if vec.max() - vec.min() != 0 else np.zeros_like(vec)
-        
-        vec -= .5
-        vec = 1 / (1 + np.exp(-20*vec))
-        
-        colormap = cm.get_cmap("plasma")
-        colors = colormap(vec)
-        self.mesh.vertex_colors = colors[:,:3]
-        self.updateShape("mesh")
     
     def reset_colours(self):
-        ###self.mesh.vertex_colors = Color.GRAY
-        self.color = Color.GRAY
+        color = np.zeros((len(self.mesh.vertices), 3))
+        color[:, 0] = 0.45
+        color[:, 1] = 0.45
+        color[:, 2] = 0.45
+        self.mesh.vertex_colors = color
         self.updateShape("mesh")
 
 
@@ -919,7 +873,6 @@ def Taubin_recursive(mesh:Mesh3D, iterations, l, m, bar, iterator):
         return
         
     vertices_new = vertices + l*Dp
-    ###vertices_new = vertices_new + m*Dp
     mesh.vertices = vertices_new    
     
     Dp = -delta_coordinates_sparse(mesh)
@@ -931,17 +884,6 @@ def Taubin_recursive(mesh:Mesh3D, iterations, l, m, bar, iterator):
     bar.update(iterator)
     iterator += 1    
     Taubin_recursive(mesh, iterations-1, l, m, bar, iterator)
-
-####Implement this    
-###def spectral_filter(mesh:Mesh3D, iterations, a):
-###    functional = a<=1 and a>=0
-###    if not functional:
-###        print("The parameter a must satisfy the 0<=a<=1 condition for this algorithm to work.")
-###    mesh_decomp = eigendecomposition_full(mesh)
-###    kernel = np.exp(-mesh_decomp[1] * a)**iterations
-###    
-###    filtered_eigenvectors = mesh_decomp[1] @ np.diag(kernel) @ mesh_decomp[1].T
-###    mesh.vertices = filtered_eigenvectors @ self.vertices
 
 if __name__ == "__main__":
     app = Texture_Detection()
